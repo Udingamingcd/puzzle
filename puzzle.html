@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dynamic Puzzle Game</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .top-bar, .level-buttons {
+      margin: 15px;
+    }
+
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      background-color: #ff6b6b;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #e85050;
+    }
+
+    h1 {
+      margin-top: 20px;
+      font-size: 2.2rem;
+      text-shadow: 1px 1px 3px #000;
+    }
+
+    .puzzle-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 95vw;
+      height: 80vh;
+      padding: 10px;
+    }
+
+    .scroll-wrapper {
+      max-width: 90vw;
+      max-height: 75vh;
+      overflow: auto;
+      border: 2px solid white;
+      border-radius: 12px;
+      padding: 5px;
+      background-color: rgba(0, 0, 0, 0.2);
+    }
+
+    .puzzle {
+      display: grid;
+      gap: 4px;
+      transition: all 0.3s ease-in-out;
+    }
+
+    .tile {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #2ecc71;
+      color: white;
+      font-size: calc(var(--tile-size) * 0.4);
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 8px;
+      user-select: none;
+      transition: transform 0.2s ease, background 0.2s;
+      width: var(--tile-size, 60px);
+      height: var(--tile-size, 60px);
+    }
+
+    .tile:hover {
+      transform: scale(1.05);
+      background-color: #27ae60;
+    }
+
+    .empty {
+      background-color: transparent;
+      cursor: default;
+    }
+
+    .upload-label {
+      display: inline-block;
+      padding: 10px 20px;
+      background-color: #4caf50;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      margin: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      transition: background 0.3s ease;
+    }
+
+    .upload-label:hover {
+      background-color: #3e8e41;
+    }
+
+    #upload-input {
+      display: none;
+    }
+    .tile.moving {
+        animation: flash-move 0.3s ease-in-out;
+        background-color: #f1c40f !important;
+        transform: scale(1.1);
+    }
+
+    @keyframes flash-move {
+        0%   { background-color: #f39c12; transform: scale(1); }
+        50%  { background-color: #f1c40f; transform: scale(1.1); }
+        100% { background-color: #2ecc71; transform: scale(1); }
+    }
+
+    /* Styles for the custom popup */
+    .popup-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      visibility: hidden;
+      opacity: 0;
+      transition: visibility 0s, opacity 0.3s;
+    }
+
+    .popup-overlay.show {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    .popup-content {
+      background: linear-gradient(135deg, #764ba2, #667eea);
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+      text-align: center;
+      transform: scale(0.9);
+      transition: transform 0.3s ease;
+    }
+
+    .popup-overlay.show .popup-content {
+      transform: scale(1);
+    }
+
+    .popup-content h2 {
+      margin-top: 0;
+      color: #fff;
+      font-size: 1.8rem;
+    }
+
+    .popup-content p {
+      color: #eee;
+      font-size: 1.1rem;
+      margin-bottom: 20px;
+    }
+
+    .popup-content button {
+      background-color: #ff6b6b;
+      color: white;
+      padding: 10px 25px;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .popup-content button:hover {
+      background-color: #e85050;
+    }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <button onclick="window.location.href='halaman game.html'">Ke Halaman Lain</button>
+  </div>
+
+  <h1>Dynamic Puzzle Game</h1>
+
+  <label for="upload-input" class="upload-label">📷 Pilih Gambar untuk Puzzle</label>
+  <input type="file" id="upload-input" accept="image/*" />
+
+  <div class="level-buttons">
+    <button onclick="setLevel(3)">Level 1 (3x3)</button>
+    <button onclick="setLevel(6)">Level 2 (6x6)</button>
+    <button onclick="setLevel(16)">Level 3 (16x16)</button>
+    <button onclick="startPuzzle()">🎮 Mulai Puzzle</button>
+    <button onclick="autoSolve()">🧩 Auto-Selesai</button>
+    <button id="stopSolveBtn" style="display:none;">🛑 Berhenti Solusi</button>
+  </div>
+
+  <div class="puzzle-container">
+    <div id="scrollWrapper">
+      <div class="puzzle" id="puzzle"></div>
+    </div>
+  </div>
+
+  <div id="puzzlePopup" class="popup-overlay">
+    <div class="popup-content">
+      <h2 id="popupTitle"></h2>
+      <p id="popupMessage"></p>
+      <button onclick="hidePopup()">Tutup</button>
+    </div>
+  </div>
+
+  <script>
+    const puzzleContainer = document.getElementById('puzzle');
+    const scrollWrapper = document.getElementById('scrollWrapper');
+    const uploadInput = document.getElementById('upload-input');
+    const stopSolveBtn = document.getElementById('stopSolveBtn');
+    let gridSize = 3;
+    let tiles = [];
+    let imageTiles = false;
+    let uploadedImage = null;
+    let isSolving = false;
+    let solvePromiseResolve = null; // Tidak lagi digunakan secara langsung dengan A*
+
+    const puzzlePopup = document.getElementById('puzzlePopup');
+    const popupTitle = document.getElementById('popupTitle');
+    const popupMessage = document.getElementById('popupMessage');
+
+    function showPopup(title, message) {
+        popupTitle.textContent = title;
+        popupMessage.textContent = message;
+        puzzlePopup.classList.add('show');
+    }
+
+    function hidePopup() {
+        puzzlePopup.classList.remove('show');
+    }
+
+    function isSolvable(currentTiles, currentGridSize) {
+        let inversions = 0;
+        const tempTiles = currentTiles.filter(tile => tile !== 0);
+
+        for (let i = 0; i < tempTiles.length - 1; i++) {
+            for (let j = i + 1; j < tempTiles.length; j++) {
+                if (tempTiles[i] > tempTiles[j]) {
+                    inversions++;
+                }
+            }
+        }
+
+        if (currentGridSize % 2 === 1) { // Odd grid (e.g., 3x3, 5x5)
+            return inversions % 2 === 0;
+        } else { // Even grid (e.g., 4x4, 6x6)
+            const emptyTileIndex = currentTiles.indexOf(0);
+            const emptyRow = Math.floor(emptyTileIndex / currentGridSize); // 0-indexed row
+            const emptyRowFromBottom = currentGridSize - emptyRow; // 1-indexed from bottom
+            return (inversions + emptyRowFromBottom) % 2 === 0;
+        }
+    }
+
+    function generateTiles(shuffle = true) {
+        const size = gridSize * gridSize;
+        if (!shuffle) {
+            // Tiles in solved order
+            tiles = Array.from({ length: size }, (_, i) => (i + 1) % size);
+        } else {
+            let generated = false;
+            while (!generated) {
+                let tempTiles = [...Array(size).keys()].map(i => (i + 1) % size);
+                for (let i = tempTiles.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [tempTiles[i], tempTiles[j]] = [tempTiles[j], tempTiles[i]];
+                }
+
+                if (isSolvable(tempTiles, gridSize)) {
+                    tiles = tempTiles;
+                    generated = true;
+                } else {
+                    console.log("Puzzle tidak dapat diselesaikan, mengacak ulang...");
+                }
+            }
+        }
+    }
+
+    function renderPuzzle() {
+        const tileSize = gridSize > 10 ? 30 : gridSize > 5 ? 50 : 80;
+        puzzleContainer.style.setProperty('--tile-size', tileSize + 'px');
+        puzzleContainer.style.gridTemplateColumns = `repeat(${gridSize}, var(--tile-size))`;
+        puzzleContainer.style.gridTemplateRows = `repeat(${gridSize}, var(--tile-size))`;
+        puzzleContainer.innerHTML = '';
+
+        tiles.forEach((tile, index) => {
+            const div = document.createElement('div');
+            div.className = 'tile';
+            if (tile === 0) {
+                div.classList.add('empty');
+            } else {
+                if (imageTiles && uploadedImage) {
+                    div.style.backgroundImage = `url(${uploadedImage})`;
+                    div.style.backgroundSize = `${gridSize * 100}% ${gridSize * 100}%`;
+                    // Calculate position based on the solved order of the tile value
+                    const actualTileValue = tile; // This is the number (1 to N*N-1)
+                    const row = Math.floor((actualTileValue - 1) / gridSize);
+                    const col = (actualTileValue - 1) % gridSize;
+                    div.style.backgroundPosition = `${(col * 100) / (gridSize - 1)}% ${(row * 100) / (gridSize - 1)}%`;
+                    div.textContent = '';
+                } else {
+                    div.textContent = tile;
+                }
+                div.onclick = () => moveTile(index);
+            }
+            puzzleContainer.appendChild(div);
+        });
+
+        if (gridSize >= 6) { // Aktifkan scroll wrapper untuk level 2 dan 3
+            scrollWrapper.classList.add('scroll-wrapper');
+        } else {
+            scrollWrapper.classList.remove('scroll-wrapper');
+        }
+    }
+
+    function moveTile(index) {
+        if (isSolving) return;
+
+        const emptyIndex = tiles.indexOf(0);
+        const row = i => Math.floor(i / gridSize);
+        const col = i => i % gridSize;
+        const isAdjacent = Math.abs(row(index) - row(emptyIndex)) + Math.abs(col(index) - col(emptyIndex)) === 1;
+
+        if (isAdjacent) {
+            swapAnimated(index, emptyIndex);
+            checkWin();
+        }
+    }
+
+    function checkWin() {
+        for (let i = 0; i < tiles.length - 1; i++) {
+            if (tiles[i] !== i + 1) return;
+        }
+        if (tiles[tiles.length - 1] === 0) {
+            setTimeout(() => showPopup('Selamat!', 'Puzzle selesai! Anda berhasil menyelesaikannya!'), 100);
+            stopSolveBtn.style.display = 'none';
+            isSolving = false;
+        }
+    }
+
+    function setLevel(size) {
+        gridSize = size;
+        generateTiles(false); // Render in solved state initially
+        renderPuzzle();
+        stopSolveBtn.style.display = 'none';
+        isSolving = false;
+    }
+
+    async function startPuzzle() {
+        stopSolveBtn.style.display = 'none';
+        isSolving = false;
+        
+        // Ensure tiles are generated in a solvable, shuffled state
+        generateTiles(true);
+        renderPuzzle(); // Render shuffled state
+        
+        // Optional: brief delay before allowing interaction (if desired)
+        // await delay(500); 
+    }
+
+    function getAdjacentIndices(index) {
+        const neighbors = [];
+        const row = Math.floor(index / gridSize);
+        const col = index % gridSize;
+
+        if (row > 0) neighbors.push(index - gridSize);
+        if (row < gridSize - 1) neighbors.push(index + gridSize);
+        if (col > 0) neighbors.push(index - 1);
+        if (col < gridSize - 1) neighbors.push(index + 1);
+
+        return neighbors;
+    }
+
+    // --- Fungsi baru: Manhattan Distance Heuristik ---
+    function getManhattanDistance(currentState, size) {
+        let distance = 0;
+        for (let i = 0; i < currentState.length; i++) {
+            const value = currentState[i];
+            if (value === 0) continue; // Abaikan ubin kosong
+
+            const currentRow = Math.floor(i / size);
+            const currentCol = i % size;
+
+            const targetRow = Math.floor((value - 1) / size);
+            const targetCol = (value - 1) % size;
+
+            distance += Math.abs(currentRow - targetRow) + Math.abs(currentCol - targetCol);
+        }
+        return distance;
+    }
+
+    // --- Fungsi untuk Auto-Solve menggunakan A* Search ---
+    async function autoSolve() {
+        if (isSolved()) {
+            showPopup('Informasi', 'Puzzle sudah selesai!');
+            return;
+        }
+
+        if (isSolving) {
+            showPopup('Informasi', 'Puzzle sedang dalam proses penyelesaian otomatis.');
+            return;
+        }
+
+        if (!isSolvable(tiles, gridSize)) {
+            showPopup('Tidak Dapat Diselesaikan', 'Maaf, konfigurasi puzzle saat ini tidak dapat diselesaikan. Silakan acak ulang atau mulai puzzle baru.');
+            return;
+        }
+
+        isSolving = true;
+        stopSolveBtn.style.display = 'inline-block';
+        showPopup('Penyelesaian Otomatis', 'Mencari solusi... Ini mungkin memakan waktu untuk puzzle yang besar.');
+
+        let path;
+        try {
+            // Gunakan A* Search untuk menemukan solusi
+            path = await findSolutionAStar(tiles, gridSize);
+            
+            if (!path) {
+                showPopup('Gagal Menyelesaikan', 'Tidak dapat menemukan solusi dalam batas waktu. Mungkin terlalu kompleks atau ada masalah pada algoritma.');
+                isSolving = false;
+                stopSolveBtn.style.display = 'none';
+                return;
+            }
+
+            for (const move of path) {
+                if (!isSolving) { // Periksa lagi di setiap iterasi
+                    showPopup('Solusi Dihentikan', 'Penyelesaian otomatis puzzle dihentikan.');
+                    break;
+                }
+                const emptyIndex = tiles.indexOf(0);
+                const tileToMoveIndex = tiles.indexOf(move);
+                await swapAnimated(tileToMoveIndex, emptyIndex);
+                await delay(gridSize <= 3 ? 100 : (gridSize <= 6 ? 50 : 20)); // Kecepatan animasi auto-solve disesuaikan
+            }
+
+            if (isSolved() && isSolving) {
+                showPopup('Selamat!', 'Puzzle selesai secara otomatis!');
+            }
+        } catch (error) {
+            if (error === 'stopped') {
+                showPopup('Solusi Dihentikan', 'Penyelesaian otomatis puzzle dihentikan.');
+            } else {
+                console.error("Error during auto-solve:", error);
+                showPopup('Terjadi Kesalahan', 'Terjadi kesalahan saat mencoba menyelesaikan puzzle secara otomatis.');
+            }
+        } finally {
+            isSolving = false;
+            stopSolveBtn.style.display = 'none';
+        }
+    }
+
+    stopSolveBtn.onclick = () => {
+        isSolving = false;
+    };
+
+    // --- Fungsi A* Search (menggantikan BFS) ---
+    async function findSolutionAStar(initialState, size) {
+        const targetState = Array.from({ length: size * size }, (_, i) => (i + 1) % (size * size));
+
+        // Priority queue: [f_score, g_score, state, path_to_state]
+        const openSet = [
+            [
+                getManhattanDistance(initialState, size), // f_score (h)
+                0,                                       // g_score
+                initialState,
+                []                                       // path_to_state (sequence of tile values moved)
+            ]
+        ];
+
+        // Untuk menyimpan g_score terbaik yang ditemukan untuk setiap state
+        const gScore = new Map();
+        gScore.set(JSON.stringify(initialState), 0);
+
+        // Untuk melacak state yang sudah diproses (seperti 'visited' pada BFS)
+        const closedSet = new Set();
+
+        // Batas iterasi yang lebih tinggi untuk A*
+        let maxIterations = gridSize * gridSize * 10000; // Disesuaikan berdasarkan ukuran grid
+        if (gridSize === 16) maxIterations = 5000000; // Lebih besar untuk 16x16, tapi tetap ada batas
+
+        let iterations = 0;
+
+        while (openSet.length > 0 && iterations < maxIterations) {
+            if (!isSolving) {
+                console.log("A* search stopped by user.");
+                return null;
+            }
+
+            // Urutkan openSet berdasarkan f_score (elemen pertama dari setiap item)
+            openSet.sort((a, b) => a[0] - b[0]);
+            const [fScore, currentG, currentState, currentPath] = openSet.shift();
+            iterations++;
+
+            const currentStateStr = JSON.stringify(currentState);
+
+            if (currentStateStr === JSON.stringify(targetState)) {
+                console.log(`Solution found in ${iterations} iterations (A*). Path length: ${currentPath.length}`);
+                return currentPath;
+            }
+
+            // Jika state ini sudah di closedSet, berarti kita sudah menemukan jalur yang lebih pendek sebelumnya
+            if (closedSet.has(currentStateStr)) {
+                continue;
+            }
+            closedSet.add(currentStateStr);
+
+            const emptyIndex = currentState.indexOf(0);
+            const neighborsToMove = getAdjacentIndicesForBFS(emptyIndex, size);
+
+            for (const neighborIndex of neighborsToMove) {
+                const nextState = [...currentState];
+                [nextState[emptyIndex], nextState[neighborIndex]] = [nextState[neighborIndex], nextState[emptyIndex]];
+
+                const nextG = currentG + 1;
+                const nextStateStr = JSON.stringify(nextState);
+
+                if (!gScore.has(nextStateStr) || nextG < gScore.get(nextStateStr)) {
+                    gScore.set(nextStateStr, nextG);
+                    const nextH = getManhattanDistance(nextState, size);
+                    const nextF = nextG + nextH;
+                    openSet.push([nextF, nextG, nextState, [...currentPath, nextState[emptyIndex]]]);
+                }
+            }
+        }
+        console.warn(`A* search: Max iterations (${maxIterations}) reached or no solution found.`);
+        return null;
+    }
+
+    function getAdjacentIndicesForBFS(index, size) {
+        const neighbors = [];
+        const row = Math.floor(index / size);
+        const col = index % size;
+
+        if (row > 0) neighbors.push(index - size);
+        if (row < size - 1) neighbors.push(index + size);
+        if (col > 0) neighbors.push(index - 1);
+        if (col < size - 1) neighbors.push(index + 1);
+
+        return neighbors;
+    }
+
+    function swapAnimated(i, j) {
+        return new Promise(resolve => {
+            if (!isSolving && j !== tiles.indexOf(0)) {
+                 resolve();
+                 return;
+            }
+
+            const tileElements = puzzleContainer.children;
+            
+            const tile1 = tileElements[i];
+            const tile2 = tileElements[j];
+
+            if (tile1) tile1.classList.add('moving');
+            if (tile2) tile2.classList.add('moving');
+
+            [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
+            
+            setTimeout(() => {
+                renderPuzzle();
+                setTimeout(() => {
+                    // Setelah renderPuzzle, elemen DOM mungkin dibuat ulang,
+                    // jadi kita perlu mengambil referensi ulang
+                    const newTile1 = puzzleContainer.children[j]; 
+                    const newTile2 = puzzleContainer.children[i];
+                    if (newTile1) newTile1.classList.remove('moving');
+                    if (newTile2) newTile2.classList.remove('moving');
+                    resolve();
+                }, 50); // Durasi untuk animasi kembali normal
+            }, 100); // Durasi animasi 'moving'
+        });
+    }
+
+    function delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function isSolved() {
+        for (let i = 0; i < tiles.length - 1; i++) {
+            if (tiles[i] !== i + 1) return false;
+        }
+        return tiles[tiles.length - 1] === 0;
+    }
+
+    function compressImage(file, maxSize = 800) {
+        return new Promise(resolve => {
+            const img = new Image();
+            const reader = new FileReader();
+
+            reader.onload = e => {
+                img.src = e.target.result;
+            };
+
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
+                canvas.width = img.width * scale;
+                canvas.height = img.height * scale;
+
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                resolve(canvas.toDataURL('image/jpeg', 0.8));
+            };
+
+            reader.readAsDataURL(file);
+        });
+    }
+
+    uploadInput.addEventListener('change', async event => {
+        const file = event.target.files[0];
+        if (file) {
+            const compressedDataUrl = await compressImage(file, 800);
+            uploadedImage = compressedDataUrl;
+            imageTiles = true;
+            generateTiles(false); // Show image in solved state initially
+            renderPuzzle();
+        }
+    });
+
+    // Panggil setLevel(3) saat halaman pertama kali dimuat
+    setLevel(3);
+  </script>
+</body>
+</html>
